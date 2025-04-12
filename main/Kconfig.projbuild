@@ -1,36 +1,67 @@
 menu "ESP32S3 TCP设备框架配置"
 
-    config WIFI_SSID
-        string "WiFi SSID"
-        default "myssid"
-        help
-            连接到的WiFi网络名称。
+    menu "WiFi Configuration"
+        config WIFI_SSID
+            string "WiFi SSID"
+            default "myssid"
+            help
+                SSID (network name) to connect to.
 
-    config WIFI_PASSWORD
-        string "WiFi 密码"
-        default "mypassword"
-        help
-            WiFi网络密码。
+        config WIFI_PASSWORD
+            string "WiFi Password"
+            default "mypassword"
+            help
+                WiFi password (WPA or WPA2) to use.
+    endmenu
 
-    config TCP_SERVER_IP
-        string "TCP服务器IP地址"
-        default "192.168.1.100"
-        help
-            远程TCP服务器的IP地址。
+    menu "TCP Server Configuration"
+        config TCP_SERVER_IP
+            string "TCP Server IP"
+            default "192.168.1.100"
+            help
+                IP address of the TCP server to connect to.
 
-    config TCP_SERVER_PORT
-        int "TCP服务器端口"
-        range 1 65535
-        default 8080
-        help
-            远程TCP服务器的端口号。
+        config TCP_SERVER_PORT
+            int "TCP Server Port"
+            default 8080
+            help
+                Port of the TCP server to connect to.
+    endmenu
 
-    config POWER_SAVE_TIMEOUT
-        int "低功耗超时时间(秒)"
-        range 1 3600
-        default 10
-        help
-            在无活动后进入低功耗模式的时间(秒)。
+    menu "Power Management"
+        config POWER_SAVE_TIMEOUT
+            int "Power Save Timeout (seconds)"
+            default 30
+            help
+                Seconds of inactivity before entering power save mode.
+    endmenu
+
+    menu "UART Configuration"
+        config UART_PORT
+            int "UART Port Number"
+            default 1
+            range 0 2
+            help
+                UART port number to use (0-2).
+
+        config UART_BAUD_RATE
+            int "UART Baud Rate"
+            default 115200
+            help
+                UART baud rate.
+
+        config UART_TX_PIN
+            int "UART TX Pin"
+            default 17
+            help
+                GPIO pin for UART TX.
+
+        config UART_RX_PIN
+            int "UART RX Pin"
+            default 18
+            help
+                GPIO pin for UART RX.
+    endmenu
 
     config BATTERY_LOW_THRESHOLD
         int "电池低电量阈值(%)"

@@ -39,6 +39,17 @@ void device_manager::init_all() {
     }
 }
 
+void device_manager::deinit_all() {
+    for (auto& dev : devices_) {
+        int ret = dev->deinit();
+        if (ret != 0) {
+            ESP_LOGE(TAG, "设备 %s 反初始化失败: %d", dev->name(), ret);
+        } else {
+            ESP_LOGI(TAG, "设备 %s 反初始化成功", dev->name());
+        }
+    }
+}
+
 void device_manager::suspend_all() {
     for (auto& dev : devices_) {
         int ret = dev->suspend();

@@ -11,6 +11,7 @@
 #include "network_module.h"
 #include "battery_manager.h"
 #include "pmu.h"
+#include "uart_device.h"
 
 // 使用命名空间
 using namespace esp_framework;
@@ -32,9 +33,9 @@ public:
                 
             case event_type::data_received:
                 if (event.data_type == event_data_type::string && event.data) {
-                    ESP_LOGI(TAG, "接收到数据: %s", (const char*)event.data.get());
+                    // ESP_LOGI(TAG, "接收到数据: %s", (const char*)event.data.get());
                 } else if (event.data_type == event_data_type::binary && event.data) {
-                    ESP_LOGI(TAG, "接收到二进制数据: %zu字节", event.data_size);
+                    // ESP_LOGI(TAG, "接收到二进制数据: %zu字节", event.data_size);
                 }
                 break;
                 
@@ -120,6 +121,12 @@ void main_task(void* pvParameter) {
         // 获取网络模块和电池管理器实例
         auto& net_module = network_module::get_instance();
         auto& batt_mgr = battery_manager::get_instance();
+        //从dev_mgr中获取uart_device
+        auto uart_dev = std::dynamic_pointer_cast<uart_device>(dev_mgr->get_device_by_name("uart_device"));
+        if (!uart_dev) {
+            ESP_LOGE(TAG, "无法获取uart device或类型转换失败");
+            throw std::runtime_error("无法获取uart设备");
+        }
         
         // 连接WiFi
         const char* ssid = CONFIG_WIFI_SSID;
@@ -192,7 +199,8 @@ void main_task(void* pvParameter) {
             // 处理电源管理
             power_mgr->loop();
             
-            
+            // uart1 echo，tx rx 短接了
+            uart_dev->send_data("Hello from uart1!");
             // 每秒执行一次
             vTaskDelay(1000 / portTICK_PERIOD_MS);
         }
@@ -243,7 +251,22 @@ extern "C" void app_main(void)
         return;
     }
     
+    // 创建UART设备
+    auto uart_dev = std::shared_ptr<uart_device>(new uart_device(
+        (uart_port_t)CONFIG_UART_PORT,
+        CONFIG_UART_BAUD_RATE,
+        CONFIG_UART_TX_PIN,
+        CONFIG_UART_RX_PIN
+    ));
+    if (!uart_dev) {
+        ESP_LOGE(TAG, "UART设备创建失败");
+        delete dev_mgr;
+        return;
+    }
+    
+    // 注册设备
     dev_mgr->register_device(batt_dev);
+    dev_mgr->register_device(uart_dev);
     
     // 初始化所有设备
     dev_mgr->init_all();
@@ -251,19 +274,15 @@ extern "C" void app_main(void)
     // 初始化电池管理器
     battery_manager::get_instance().init(batt_dev);
     
-    // 创建主任务前的堆内存
-    ESP_LOGI(TAG, "创建主任务前空闲堆内存: %u字节", esp_get_free_heap_size());
-    
     // 创建主任务
-    BaseType_t ret = xTaskCreate(main_task, "main_task", 4096, dev_mgr, 5, NULL);
+    TaskHandle_t task_handle = NULL;
+    BaseType_t ret = xTaskCreate(main_task, "main_task", 8192, dev_mgr, 5, &task_handle);
     if (ret != pdPASS) {
-        ESP_LOGE(TAG, "主任务创建失败，错误码: %d", ret);
+        ESP_LOGE(TAG, "主任务创建失败");
+        dev_mgr->deinit_all();
         delete dev_mgr;
         return;
     }
     
-    // 创建主任务后的堆内存
-    ESP_LOGI(TAG, "创建主任务后空闲堆内存: %u字节", esp_get_free_heap_size());
-    
-    // app_main函数可以返回，但主任务会继续运行
+    ESP_LOGI(TAG, "主任务已创建，应用程序启动成功");
 } 

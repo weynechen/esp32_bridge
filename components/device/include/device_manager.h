@@ -26,6 +26,11 @@ public:
     void init_all();
     
     /**
+     * @brief 反初始化所有已注册设备
+     */
+    void deinit_all();
+    
+    /**
      * @brief 挂起所有已注册设备（低功耗模式）
      */
     void suspend_all();

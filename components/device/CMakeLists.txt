@@ -1,8 +1,11 @@
 idf_component_register(
     SRCS 
         "device_manager.cpp"
+        "uart_device.cpp"
     INCLUDE_DIRS 
         "include"
     REQUIRES 
         "common"
+        "network"
+        "driver"
 ) 
