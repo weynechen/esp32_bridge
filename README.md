@@ -1,6 +1,15 @@
-# ESP32S3 基于 TCP 的多设备框架
+# ESP32S3 基于 TCP 的多设备框架(c++)
 
 基于ESP32S3平台的多设备管理框架，支持事件发布订阅模式、设备抽象管理和可扩展总线设计。
+
+## 项目概述
+
+本项目为ESP32S3开发的一个综合性框架，专注于实现以下功能：
+- 多设备管理与抽象
+- 基于TCP的网络通信
+- 电源管理与低功耗模式
+- 电池状态监控
+- 基于事件的系统通信
 
 ## 项目结构
 
@@ -21,10 +30,12 @@
 │       └── include
 │           ├── device.h       // 设备抽象接口
 │           └── device_manager.h // 设备管理器头文件
-└── main                       // 主程序
-    ├── CMakeLists.txt
-    ├── component.mk
-    └── main.cpp               // 主程序入口
+├── main                       // 主程序
+│   ├── CMakeLists.txt
+│   ├── component.mk
+│   ├── main.cpp               // 主程序入口
+│   └── Kconfig.projbuild      // 项目配置选项
+└── LICENSE                    // MIT许可证
 ```
 
 ## 特性
@@ -32,15 +43,18 @@
 - **设备抽象层**：通过通用接口统一管理不同类型设备
 - **事件系统**：发布-订阅模式实现模块间通信
 - **总线设计**：支持设备的批量生命周期管理
+- **网络模块**：支持WiFi连接和TCP客户端通信
+- **电池管理**：监控电池状态，发布电池相关事件
+- **电源管理**：管理系统电源状态，支持低功耗模式
 - **ESP-IDF日志系统**：直接使用ESP-IDF内置的日志功能
 - **RAII设计**：通过智能指针和RAII原则管理资源
 - **模块化**：良好的模块划分和职责分离
 
 ## 开发环境
 
-- ESP-IDF 版本：4.4 或更高
+- ESP-IDF 版本：5.4 或更高
 - 编译器支持：支持C++14及以上特性
-- 构建工具：CMake 3.5或更高
+- 构建工具：CMake 3.10或更高
 
 ## 构建指南
 
@@ -58,6 +72,22 @@ idf.py build
 ```bash
 idf.py -p [PORT] flash
 ```
+
+4. 监视串口输出：
+```bash
+idf.py -p [PORT] monitor
+```
+
+## 配置说明
+
+项目使用Kconfig系统进行配置，主要配置项包括：
+
+- WiFi SSID和密码
+- TCP服务器IP和端口
+- 电源管理超时时间
+- uart设定
+
+可以通过`idf.py menuconfig`命令进行配置。
 
 ## 扩展开发指南
 
@@ -110,9 +140,11 @@ event_data event(event_type::network_connected);
 event_bus::get_instance().publish(event);
 ```
 
-## 许可证
+## 编码注意事项
 
-MIT 
+- 在编码生成新的类等需要内存的地方，不要使用stack，如局部变量。而是使用heap，因为任务栈空间有限。
+- 使用智能指针管理动态分配的内存，避免内存泄漏。
+- 使用事件系统进行模块间通信，避免紧耦合。
 
 ## 日志使用方法
 
@@ -136,20 +168,6 @@ esp_log_level_set("*", ESP_LOG_INFO);      // 设置所有模块的日志级别
 esp_log_level_set("MyModule", ESP_LOG_DEBUG); // 设置特定模块的日志级别
 ```
 
-## 构建说明
+## 许可证
 
-请确保已安装ESP-IDF开发环境。
-
-```bash
-# 设置ESP-IDF环境
-. $HOME/esp/esp-idf/export.sh
-
-# 构建项目
-idf.py build
-
-# 烧录程序
-idf.py -p /dev/ttyUSB0 flash
-
-# 监视串口输出
-idf.py -p /dev/ttyUSB0 monitor
-``` 
+本项目采用MIT许可证。详见[LICENSE](LICENSE)文件。 
