@@ -1,0 +1,11 @@
+idf_component_register(
+    SRCS 
+        "src/battery_manager.cpp"
+    INCLUDE_DIRS 
+        "include"
+    REQUIRES 
+        "common"
+        "device"
+        "driver"
+        "esp_adc"
+) 

@@ -1,0 +1,49 @@
+menu "ESP32S3 TCP设备框架配置"
+
+    config WIFI_SSID
+        string "WiFi SSID"
+        default "myssid"
+        help
+            连接到的WiFi网络名称。
+
+    config WIFI_PASSWORD
+        string "WiFi 密码"
+        default "mypassword"
+        help
+            WiFi网络密码。
+
+    config TCP_SERVER_IP
+        string "TCP服务器IP地址"
+        default "192.168.1.100"
+        help
+            远程TCP服务器的IP地址。
+
+    config TCP_SERVER_PORT
+        int "TCP服务器端口"
+        range 1 65535
+        default 8080
+        help
+            远程TCP服务器的端口号。
+
+    config POWER_SAVE_TIMEOUT
+        int "低功耗超时时间(秒)"
+        range 1 3600
+        default 10
+        help
+            在无活动后进入低功耗模式的时间(秒)。
+
+    config BATTERY_LOW_THRESHOLD
+        int "电池低电量阈值(%)"
+        range 5 50
+        default 20
+        help
+            电池低电量阈值百分比。
+
+    config BATTERY_CRITICAL_THRESHOLD
+        int "电池严重低电量阈值(%)"
+        range 1 20
+        default 10
+        help
+            电池严重低电量阈值百分比。
+
+endmenu 

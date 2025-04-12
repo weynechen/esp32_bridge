@@ -1,0 +1,12 @@
+idf_component_register(
+    SRCS 
+        "src/network_module.cpp"
+    INCLUDE_DIRS 
+        "include"
+    REQUIRES 
+        "common"
+        "nvs_flash"
+        "esp_wifi"
+        "lwip"
+        "esp_event"
+) 

@@ -1,0 +1,9 @@
+idf_component_register(
+    SRCS 
+        "src/pmu.cpp"
+    INCLUDE_DIRS 
+        "include"
+    REQUIRES 
+        "common"
+        "device"
+) 
