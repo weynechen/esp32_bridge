@@ -93,7 +93,7 @@ void main_task(void* pvParameter) {
 
     
     // 获取当前可用堆内存
-    ESP_LOGI(TAG, "事件监听器创建前可用堆内存: %u字节", esp_get_free_heap_size());
+    ESP_LOGI(TAG, "事件监听器创建前可用堆内存: %lu字节", esp_get_free_heap_size());
     
     // 在try之前先尝试创建事件监听器，确保没有内存问题
     system_listener* raw_listener = new system_listener();
@@ -238,7 +238,7 @@ extern "C" void app_main(void)
     
     ESP_LOGI(TAG, "系统启动");
     
-    ESP_LOGI(TAG, "空闲堆内存: %u字节", esp_get_free_heap_size());
+    ESP_LOGI(TAG, "空闲堆内存: %lu字节", esp_get_free_heap_size());
     
     // 创建并初始化设备管理器
     device_manager* dev_mgr = new device_manager();

@@ -62,7 +62,7 @@ bool pmu::is_locked() const {
 }
 
 void pmu::enter_deep_sleep(uint32_t sleep_time_ms) {
-    ESP_LOGI(TAG, "准备进入深度睡眠模式, 睡眠时间: %u毫秒", sleep_time_ms);
+    ESP_LOGI(TAG, "准备进入深度睡眠模式, 睡眠时间: %lu毫秒", sleep_time_ms);
     
     // 发布进入深度睡眠事件，允许其他模块做准备
     event_data event(event_type::enter_deep_sleep);
@@ -73,7 +73,7 @@ void pmu::enter_deep_sleep(uint32_t sleep_time_ms) {
     
     // 配置唤醒源
     if (sleep_time_ms > 0) {
-        ESP_LOGI(TAG, "配置定时器唤醒源，%u毫秒后唤醒", sleep_time_ms);
+        ESP_LOGI(TAG, "配置定时器唤醒源，%lu毫秒后唤醒", sleep_time_ms);
         esp_sleep_enable_timer_wakeup(sleep_time_ms * 1000); // 转换为微秒
     }
     

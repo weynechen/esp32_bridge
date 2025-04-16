@@ -6,7 +6,7 @@ idf_component_register(
                  "../components/network/include"
                  "../components/battery/include"
                  "../components/pmu/include"
-                 "../components/protocol/include"
+                #  "../components/protocol/include"
     REQUIRES 
         device 
         common
