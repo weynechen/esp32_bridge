@@ -5,6 +5,9 @@ cmake_minimum_required(VERSION 3.5)
 # IDF路径通常从环境变量获取
 set(IDF_PATH $ENV{IDF_PATH})
 
+# 添加全局编译选项
+add_compile_options(-fno-exceptions)
+
 # 包含ESP-IDF的项目构建系统
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 project(esp32_dongle) 

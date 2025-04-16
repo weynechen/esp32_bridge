@@ -10,3 +10,6 @@ idf_component_register(
         "lwip"
         "esp_event"
 ) 
+
+# 添加编译选项，禁用异常支持
+target_compile_options(${COMPONENT_LIB} PRIVATE -fno-exceptions) 

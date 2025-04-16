@@ -103,123 +103,118 @@ void main_task(void* pvParameter) {
         return;
     }
     
-    
-    try {
-        // 创建系统事件监听器
-        auto sys_listener = std::shared_ptr<system_listener>(raw_listener);
+    // 创建系统事件监听器
+    auto sys_listener = std::shared_ptr<system_listener>(raw_listener);
 
-        event_bus::get_instance().subscribe(event_type::network_connected, sys_listener);
-        event_bus::get_instance().subscribe(event_type::network_disconnected, sys_listener);
-        event_bus::get_instance().subscribe(event_type::data_received, sys_listener);
-        event_bus::get_instance().subscribe(event_type::battery_low, sys_listener);
-        event_bus::get_instance().subscribe(event_type::battery_critical, sys_listener);
-        event_bus::get_instance().subscribe(event_type::battery_normal, sys_listener);
-        event_bus::get_instance().subscribe(event_type::battery_temp_high, sys_listener);
-        event_bus::get_instance().subscribe(event_type::battery_temp_normal, sys_listener);
-        event_bus::get_instance().subscribe(event_type::enter_deep_sleep, sys_listener);
+    event_bus::get_instance().subscribe(event_type::network_connected, sys_listener);
+    event_bus::get_instance().subscribe(event_type::network_disconnected, sys_listener);
+    event_bus::get_instance().subscribe(event_type::data_received, sys_listener);
+    event_bus::get_instance().subscribe(event_type::battery_low, sys_listener);
+    event_bus::get_instance().subscribe(event_type::battery_critical, sys_listener);
+    event_bus::get_instance().subscribe(event_type::battery_normal, sys_listener);
+    event_bus::get_instance().subscribe(event_type::battery_temp_high, sys_listener);
+    event_bus::get_instance().subscribe(event_type::battery_temp_normal, sys_listener);
+    event_bus::get_instance().subscribe(event_type::enter_deep_sleep, sys_listener);
+    
+    // 获取网络模块和电池管理器实例
+    auto& net_module = network_module::get_instance();
+    auto& batt_mgr = battery_manager::get_instance();
+    //从dev_mgr中获取uart_device
+    auto uart_dev = std::dynamic_pointer_cast<uart_device>(dev_mgr->get_device_by_name("uart_device"));
+    if (!uart_dev) {
+        ESP_LOGE(TAG, "无法获取uart device或类型转换失败");
+        vTaskDelete(NULL);
+        return;
+    }
+    
+    // 连接WiFi
+    const char* ssid = CONFIG_WIFI_SSID;
+    const char* password = CONFIG_WIFI_PASSWORD;
+    
+    // 检查SSID和密码
+    if (ssid == NULL || password == NULL) {
+        ESP_LOGE(TAG, "WiFi配置错误: SSID或密码为空");
+    } else {
+        ESP_LOGI(TAG, "WiFi配置正确，准备连接WiFi: SSID=%s, 密码长度=%d", ssid, strlen(password));
         
-        // 获取网络模块和电池管理器实例
-        auto& net_module = network_module::get_instance();
-        auto& batt_mgr = battery_manager::get_instance();
-        //从dev_mgr中获取uart_device
-        auto uart_dev = std::dynamic_pointer_cast<uart_device>(dev_mgr->get_device_by_name("uart_device"));
-        if (!uart_dev) {
-            ESP_LOGE(TAG, "无法获取uart device或类型转换失败");
-            throw std::runtime_error("无法获取uart设备");
-        }
-        
-        // 连接WiFi
-        const char* ssid = CONFIG_WIFI_SSID;
-        const char* password = CONFIG_WIFI_PASSWORD;
-        
-        // 检查SSID和密码
-        if (ssid == NULL || password == NULL) {
-            ESP_LOGE(TAG, "WiFi配置错误: SSID或密码为空");
+        bool wifi_connected = net_module.connect_wifi(ssid, password);
+        if (!wifi_connected) {
+            ESP_LOGE(TAG, "WiFi连接失败，无法继续网络操作");
         } else {
-            ESP_LOGI(TAG, "WiFi配置正确，准备连接WiFi: SSID=%s, 密码长度=%d", ssid, strlen(password));
+            ESP_LOGI(TAG, "WiFi连接成功，准备连接TCP服务器");
             
-            bool wifi_connected = net_module.connect_wifi(ssid, password);
-            if (!wifi_connected) {
-                ESP_LOGE(TAG, "WiFi连接失败，无法继续网络操作");
+            // 连接TCP服务器
+            const char* server_ip = CONFIG_TCP_SERVER_IP;
+            uint16_t server_port = CONFIG_TCP_SERVER_PORT;
+            
+            if (server_ip == NULL) {
+                ESP_LOGE(TAG, "TCP服务器IP配置错误");
             } else {
-                ESP_LOGI(TAG, "WiFi连接成功，准备连接TCP服务器");
+                ESP_LOGI(TAG, "正在连接TCP服务器: %s:%u", server_ip, server_port);
                 
-                // 连接TCP服务器
-                const char* server_ip = CONFIG_TCP_SERVER_IP;
-                uint16_t server_port = CONFIG_TCP_SERVER_PORT;
-                
-                if (server_ip == NULL) {
-                    ESP_LOGE(TAG, "TCP服务器IP配置错误");
-                } else {
-                    ESP_LOGI(TAG, "正在连接TCP服务器: %s:%u", server_ip, server_port);
-                    
-                    // 尝试连接多次
-                    bool tcp_connected = false;
-                    for (int retry = 0; retry < 3; retry++) {
-                        ESP_LOGI(TAG, "尝试TCP连接，第%d次", retry + 1);
-                        tcp_connected = net_module.connect_tcp(server_ip, server_port);
-                        if (tcp_connected) {
-                            ESP_LOGI(TAG, "已连接到TCP服务器");
-                            
-                            // 发送测试数据
-                            const char* test_msg = "Hello from ESP32S3!";
-                            std::vector<uint8_t>* data = new std::vector<uint8_t>(test_msg, test_msg + strlen(test_msg));
-                            if (net_module.send_data(*data)) {
-                                ESP_LOGI(TAG, "测试数据发送成功");
-                            } else {
-                                ESP_LOGE(TAG, "测试数据发送失败");
-                            }
-                            delete data;
-                            break;
+                // 尝试连接多次
+                bool tcp_connected = false;
+                for (int retry = 0; retry < 3; retry++) {
+                    ESP_LOGI(TAG, "尝试TCP连接，第%d次", retry + 1);
+                    tcp_connected = net_module.connect_tcp(server_ip, server_port);
+                    if (tcp_connected) {
+                        ESP_LOGI(TAG, "已连接到TCP服务器");
+                        
+                        // 发送测试数据
+                        const char* test_msg = "Hello from ESP32S3!";
+                        std::vector<uint8_t>* data = new std::vector<uint8_t>(test_msg, test_msg + strlen(test_msg));
+                        if (net_module.send_data(*data)) {
+                            ESP_LOGI(TAG, "测试数据发送成功");
                         } else {
-                            ESP_LOGW(TAG, "TCP服务器连接失败，重试 %d/3", retry + 1);
-                            vTaskDelay(1000 / portTICK_PERIOD_MS);
+                            ESP_LOGE(TAG, "测试数据发送失败");
                         }
+                        delete data;
+                        break;
+                    } else {
+                        ESP_LOGW(TAG, "TCP服务器连接失败，重试 %d/3", retry + 1);
+                        vTaskDelay(1000 / portTICK_PERIOD_MS);
                     }
-                    
-                    if (!tcp_connected) {
-                        ESP_LOGE(TAG, "多次连接TCP服务器失败");
-                    }
+                }
+                
+                if (!tcp_connected) {
+                    ESP_LOGE(TAG, "多次连接TCP服务器失败");
                 }
             }
         }
-        
-        // 创建PMU并获取锁
-        power_mgr = new pmu(*dev_mgr, CONFIG_POWER_SAVE_TIMEOUT);
-        power_mgr->lock(); // 初始时锁定，防止系统立即进入低功耗
-        
-        // 主循环
-        while (1) {
-            // 处理网络事件
-            net_module.loop();
-            
-            // 处理电池管理
-            batt_mgr.loop();
-            
-            // 处理电源管理
-            power_mgr->loop();
-            
-            // uart1 echo，tx rx 短接了
-            uart_dev->send_data("Hello from uart1!");
-            // 每秒执行一次
-            vTaskDelay(1000 / portTICK_PERIOD_MS);
-        }
-        
-        // 此处实际上不会执行到，但为了代码完整性添加释放资源代码
-        delete power_mgr;
-    } catch (const std::exception& e) {
-        ESP_LOGE(TAG, "主任务异常: %s", e.what());
-        // 释放power_mgr资源
-        if (power_mgr != nullptr) {
-            delete power_mgr;
-        }
-    } catch (...) {
-        ESP_LOGE(TAG, "主任务发生未知异常");
-        // 释放power_mgr资源
-        if (power_mgr != nullptr) {
-            delete power_mgr;
-        }
     }
+    
+    // 创建PMU并获取锁
+    power_mgr = new pmu(*dev_mgr, CONFIG_POWER_SAVE_TIMEOUT);
+    if (!power_mgr) {
+        ESP_LOGE(TAG, "电源管理器创建失败");
+        // 释放传入的设备管理器资源
+        if (dev_mgr != nullptr) {
+            delete dev_mgr;
+        }
+        vTaskDelete(NULL);
+        return;
+    }
+    power_mgr->lock(); // 初始时锁定，防止系统立即进入低功耗
+    
+    // 主循环
+    while (1) {
+        // 处理网络事件
+        net_module.loop();
+        
+        // 处理电池管理
+        batt_mgr.loop();
+        
+        // 处理电源管理
+        power_mgr->loop();
+        
+        // uart1 echo，tx rx 短接了
+        uart_dev->send_data("Hello from uart1!");
+        // 每秒执行一次
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+    }
+    
+    // 此处实际上不会执行到，但为了代码完整性添加释放资源代码
+    delete power_mgr;
     
     // 实际上不应该到达这里
     ESP_LOGE(TAG, "主任务异常退出");

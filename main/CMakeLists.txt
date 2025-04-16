@@ -16,3 +16,6 @@ idf_component_register(
         esp_event
         esp_adc
 ) 
+
+# 添加编译选项，禁用异常支持
+target_compile_options(${COMPONENT_LIB} PRIVATE -fno-exceptions) 

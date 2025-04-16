@@ -37,44 +37,59 @@ namespace esp_framework {
 int battery_device::init() {
     ESP_LOGI(TAG, "初始化电池设备");
     
-    try {
-        // 初始化ADC
-        adc1_config_width(ADC_WIDTH_BIT_12);
-        
-        // 配置电压测量通道
-        voltage_channel_ = BATTERY_VOLTAGE_CHANNEL;
-        adc1_config_channel_atten(static_cast<adc1_channel_t>(voltage_channel_), ADC_ATTEN_DB_11);
-        
-        // 配置电流测量通道
-        current_channel_ = BATTERY_CURRENT_CHANNEL;
-        adc1_config_channel_atten(static_cast<adc1_channel_t>(current_channel_), ADC_ATTEN_DB_11);
-        
-        // 配置温度测量通道
-        temp_channel_ = BATTERY_TEMP_CHANNEL;
-        adc1_config_channel_atten(static_cast<adc1_channel_t>(temp_channel_), ADC_ATTEN_DB_11);
-        
-        // 配置充电控制GPIO
-        charge_enable_pin_ = BATTERY_CHARGE_ENABLE_PIN;
-        gpio_config_t io_conf = {};
-        io_conf.intr_type = GPIO_INTR_DISABLE;
-        io_conf.mode = GPIO_MODE_OUTPUT;
-        io_conf.pin_bit_mask = (1ULL << charge_enable_pin_);
-        io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
-        io_conf.pull_up_en = GPIO_PULLUP_DISABLE;
-        gpio_config(&io_conf);
-        
-        // 默认开启充电
-        enable_charging();
-        
-        initialized_ = true;
-        ESP_LOGI(TAG, "电池设备初始化完成");
-    } catch (const std::exception& e) {
-        ESP_LOGE(TAG, "电池设备初始化失败: %s", e.what());
-        return -1;
-    } catch (...) {
-        ESP_LOGE(TAG, "电池设备初始化发生未知异常");
+    // 初始化ADC
+    esp_err_t err = adc1_config_width(ADC_WIDTH_BIT_12);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "ADC宽度配置失败: %d", err);
         return -1;
     }
+    
+    // 配置电压测量通道
+    voltage_channel_ = BATTERY_VOLTAGE_CHANNEL;
+    err = adc1_config_channel_atten(static_cast<adc1_channel_t>(voltage_channel_), ADC_ATTEN_DB_11);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "电压测量通道配置失败: %d", err);
+        return -1;
+    }
+    
+    // 配置电流测量通道
+    current_channel_ = BATTERY_CURRENT_CHANNEL;
+    err = adc1_config_channel_atten(static_cast<adc1_channel_t>(current_channel_), ADC_ATTEN_DB_11);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "电流测量通道配置失败: %d", err);
+        return -1;
+    }
+    
+    // 配置温度测量通道
+    temp_channel_ = BATTERY_TEMP_CHANNEL;
+    err = adc1_config_channel_atten(static_cast<adc1_channel_t>(temp_channel_), ADC_ATTEN_DB_11);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "温度测量通道配置失败: %d", err);
+        return -1;
+    }
+    
+    // 配置充电控制GPIO
+    charge_enable_pin_ = BATTERY_CHARGE_ENABLE_PIN;
+    gpio_config_t io_conf = {};
+    io_conf.intr_type = GPIO_INTR_DISABLE;
+    io_conf.mode = GPIO_MODE_OUTPUT;
+    io_conf.pin_bit_mask = (1ULL << charge_enable_pin_);
+    io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
+    io_conf.pull_up_en = GPIO_PULLUP_DISABLE;
+    err = gpio_config(&io_conf);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "充电控制GPIO配置失败: %d", err);
+        return -1;
+    }
+    
+    // 默认开启充电
+    if (!enable_charging()) {
+        ESP_LOGE(TAG, "启用充电失败");
+        return -1;
+    }
+    
+    initialized_ = true;
+    ESP_LOGI(TAG, "电池设备初始化完成");
     return 0;
 }
 
