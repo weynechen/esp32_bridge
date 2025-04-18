@@ -179,17 +179,16 @@ void uart_device::uart_rx_task(void* arg) {
                         ESP_LOGI(TAG, "接收到UART数据: %d字节", len);
                         
                         // 创建数据副本用于事件系统和网络发送
-                        std::shared_ptr<uint8_t[]> data_copy(new uint8_t[len]);
+                        std::shared_ptr<uint8_t[]> data_copy(new uint8_t[len], std::default_delete<uint8_t[]>());
                         if (data_copy) {
                             // 复制数据
                             memcpy(data_copy.get(), data, len);
                             
-                            // 创建网络发送的数据向量
-                            std::vector<uint8_t> net_data(data, data + len);
-                            
-                            // 如果TCP已连接，则转发数据
+                            // 使用data_copy创建临时vector用于网络发送
                             if (network.is_tcp_connected()) {
-                                if (network.send_data(net_data)) {
+                                // 使用shared_ptr中的数据创建临时vector
+                                std::vector<uint8_t> temp_vec(data_copy.get(), data_copy.get() + len);
+                                if (network.send_data(temp_vec)) {
                                     ESP_LOGI(TAG, "数据已转发到TCP服务器");
                                 } else {
                                     ESP_LOGE(TAG, "数据转发到TCP服务器失败");
